@@ -1,39 +1,34 @@
-import 'dotenv/configs';
-import { db } from './index.js';
+import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { todos, users } from "./schema.js";
+import { pool } from './index.js';
 
 async function seed() {
-    console.log("Sending Database...");
+  console.log('Seeding database...');
 
-    //hapus data lama (optimal)
-    await db.delete(todos);
-    await db.delete(users);
+  // Hapus data lama. Urutan penting: todos dulu karena punya foreign key ke users.
+  await pool.query('DELETE FROM todos');
+  await pool.query('DELETE FROM users');
 
-    //buat users dummy dengan password yang sudah di hash
-    const plainPassword = 'password123'
-    const hashedPassword = await bcrypt.hash(plainPassword, 10) // hash password
+  // Password tidak pernah disimpan apa adanya, melainkan di-hash dulu.
+  const hashedPassword = await bcrypt.hash('password123', 10);
 
-    //buat users dummy
-    const userl = await db
-    .insert(users)
-    .values({
-        username: "andi",
-        password: hashedPassword,//selalu simpan password yang sudah di hash
-    })
-    .returning();
+  const { rows } = await pool.query(
+    'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id',
+    ['andi', hashedPassword]
+  );
+  const userId = rows[0].id;
 
-    //buat todo dummy untuk users
-    await db.insert(todos).values([
-        { note: 'Belajar Drizzle ORM', userId: userl[0].id },
-        { note: 'Membuat API dengan Hono', userId: userl[0].id },
-    ]);
+  await pool.query(
+    'INSERT INTO todos (note, user_id) VALUES ($1, $2), ($3, $4)',
+    ['Belajar SQL dan Postgres', userId, 'Membuat API dengan Hono', userId]
+  );
 
-    console.log("Seeding Completed");
-    process.exit(0);
+  console.log('✅ Seeding completed!');
 }
 
-send().catch((err) => {
-    console.error("Seeding Failed: ", err);
-    process.exit(1);
-});
+seed()
+  .catch((err) => {
+    console.error('❌ Seeding failed:', err.message);
+    process.exitCode = 1;
+  })
+  .finally(() => pool.end());
