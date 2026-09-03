@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "db:check": "node db/check-connection.js",
     "db:migrate": "node db/migrate.js",
     "db:seed": "node db/seed.js"
   },
