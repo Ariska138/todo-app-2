@@ -22,10 +22,6 @@ app.post('/api/register', async (c) => {
     );
     return c.json({ success: true, data: rows[0] }, 201);
   } catch (err) {
-    // 23505 = unique_violation, artinya username sudah dipakai
-    if (err.code === '23505') {
-      return c.json({ success: false, message: 'Username sudah dipakai' }, 400);
-    }
     console.error(err);
     return c.json({ success: false, message: 'Registrasi gagal' }, 500);
   }
